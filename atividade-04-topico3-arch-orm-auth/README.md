@@ -73,4 +73,4 @@ A parte mais difícil foi manter três ideias separadas: autenticação, autoriz
 
 ## Evidência
 
-A evidência de terminal é registrada em `IA.md`. O CI desta pasta executa o mesmo `npm run gate` do projeto.
+A evidência completa está em `IA.md`. No workflow [Atividade 04 - Gate](https://github.com/Leosx7/ifpi-programacao-internet-ii/actions/runs/39653898232), o banco foi recriado por migrations, tipos e arquitetura passaram, os **18 testes passaram com 0 falhas e 0 SKIP**, o gitleaks não encontrou segredos e o script terminou com **GATE VERDE**.
