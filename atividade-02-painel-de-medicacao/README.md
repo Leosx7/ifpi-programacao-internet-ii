@@ -1,50 +1,88 @@
-# Painel de Medicação — Atividade B
+# Painel de Medicação
 
-Atividade de Programação para Internet II (IFPI) com CRUD reativo para `MedicationOrder`, usando Express, TypeScript, SQLite com `better-sqlite3` e JavaScript ES Modules puro.
+Atividade B de Programação para Internet II — IFPI, 2026.2.
+
+CRUD reativo de `MedicationOrder` com Express + TypeScript + SQLite (`better-sqlite3`) no backend e JavaScript ES Modules puro no frontend.
 
 ## Como executar
 
 ```bash
-node -v
+node -v          # Node 22 ou superior
 npm install
 npm run db:reset
 npm run check
 npm run dev
 ```
 
-Acesse `http://localhost:3000`.
+Abra <http://localhost:3000>.
 
-## Rotas
+## Contrato implementado
 
-- `GET /api/medications` → 200
-- `POST /api/medications` → 201 ou 400
-- `GET /api/medications/:id` → 200 ou 404
-- `DELETE /api/medications/:id` → 204 ou 404
+| Método | Rota | Resultado |
+|---|---|---|
+| GET | `/api/medications` | `200` + lista |
+| POST | `/api/medications` | `201` + criado ou `400` |
+| GET | `/api/medications/:id` | `200` ou `404` |
+| DELETE | `/api/medications/:id` | `204` sem corpo ou `404` |
 
-## Decisões
+## Checklist final
 
-- SQL explícito e parametrizado, sem ORM.
-- Tradução de `snake_case` para `camelCase` antes de responder.
-- `notes` vazio persistido como `null`.
-- Frontend: `evento → ação → estado → render → tela`.
-- `api.js` é o único arquivo que usa `fetch`.
-- O detalhe usa uma nova chamada `GET /api/medications/:id`.
-- Ordenação no SQL por `scheduled_at ASC`, porque a regra pertence à consulta e a API já entrega a coleção ordenada.
+- [x] `GET /api/medications` devolve os registros do banco.
+- [x] A lista do frontend é carregada pela API.
+- [x] O formulário cadastra uma prescrição e atualiza o estado sem recarregar a página.
+- [x] Clicar em um cartão abre o detalhe usando uma nova chamada `GET /api/medications/:id`.
+- [x] Id inexistente resulta em `404` tratado no frontend.
+- [x] Suspender remove no backend, responde `204`, remove do estado e fecha o painel.
+- [x] Todo `fetch` está exclusivamente em `public/js/api.js`.
+- [x] O banco mantém os dados enquanto o servidor é reiniciado; o reset só ocorre ao executar `npm run db:reset`.
+- [x] SQL parametrizado nas operações que recebem entrada.
+- [x] Tradução `snake_case → camelCase` antes da resposta HTTP.
+- [x] `notes` vazio é armazenado como `null`.
 
-## Bônus
+## Separação do frontend
 
-Incluído `GET /api/medications?patientName=Ana`, com `WHERE patient_name LIKE ?`.
+O fluxo segue o padrão da disciplina:
+
+```text
+evento → ação → estado → render → tela
+```
+
+- `api.js`: única camada que chama `fetch`;
+- `state.js`: guarda e altera o estado, sem acessar o DOM;
+- `render.js`: desenha o estado, sem fazer requisições nem decidir regras de negócio;
+- `app.js`: recebe eventos e orquestra API + estado.
+
+## Bônus 1 — filtro por paciente
+
+Também foi implementado:
+
+```http
+GET /api/medications?patientName=Ana
+```
+
+O filtro é feito no SQL com `WHERE patient_name LIKE ?`, mantendo o valor como parâmetro.
+
+## Bônus 2 — ordenação justificada
+
+A lista é ordenada no SQL por `scheduled_at ASC`. Como `scheduled_at` usa o formato ISO `AAAA-MM-DDTHH:MM`, a ordem textual também representa a ordem cronológica. Fazer isso na consulta deixa a API entregar o conjunto já ordenado e evita duplicar a mesma regra no JavaScript.
 
 ## Pergunta de saída
 
-A operação mais direta foi listar. A que exige mais cuidado é remover, porque `204` não tem corpo e o frontend precisa atualizar o estado e fechar o painel sem chamar `.json()`.
+A operação mais simples de entender foi **listar**, pois o fluxo é direto: consulta → tradução → resposta → estado → render. A que exigiu mais atenção foi **remover**, porque uma resposta `204` não possui corpo; portanto `api.js` não pode chamar `.json()`, e a aplicação ainda precisa remover o registro do estado e fechar o painel de detalhe.
 
 ## Uso de IA
 
-Foi usada IA para revisão e construção de uma solução de referência. O roteiro da atividade determina uso apenas em modo chat, em pequenas partes; portanto esta implementação completa deve ser estudada e validada pelo aluno antes de uma eventual entrega acadêmica.
+Usei IA para revisar a implementação e conferir o contrato, mas mantive as restrições da atividade: sem ORM, sem biblioteca adicional, SQL explícito/parametrizado e frontend em JavaScript puro. Uma sugestão que deve ser recusada neste exercício é adicionar React ou Prisma, porque ambos estão fora do escopo definido pelo roteiro.
 
-## Validação feita neste ambiente
+## Validações realizadas neste ambiente
 
-- Os quatro arquivos JS passaram em `node --check`.
-- Foi confirmado por busca que todos os usos de `fetch` estão apenas em `public/js/api.js`.
-- `npm ci` não concluiu neste ambiente por timeout durante a instalação de dependências nativas; por isso não foi registrada evidência falsa de `npm run db:reset` ou `npm run check`.
+Foram executadas as seguintes verificações:
+
+- `node --experimental-strip-types --check src/server.ts` → sintaxe válida;
+- `node --check public/js/*.js` → sintaxe válida;
+- busca por `fetch` → todas as chamadas estão somente em `public/js/api.js`;
+- testes diretos de `state.js` e `render.js` → adicionar, selecionar, renderizar e remover funcionando;
+- testes de `api.js` com `fetch` simulado → GET/POST/DELETE e tratamento de `404` funcionando;
+- schema/seed e operações SQL testadas em SQLite → 3 registros iniciais, filtro, inserção com `notes = null` e remoção confirmados.
+
+O `npm ci` não concluiu neste ambiente devido à instalação da dependência nativa `better-sqlite3`. Por isso a execução real do Express deve ser confirmada em uma máquina com as dependências instaladas usando os comandos da seção **Como executar**.

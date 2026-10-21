@@ -1,6 +1,9 @@
 function escapeHtml(value) {
-  return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function formatDateTime(isoDateTime) {
@@ -20,10 +23,14 @@ function medicationCardTemplate(med) {
 }
 
 function emptyStateTemplate() {
-  return `<li><div class="empty-state">
-    <p class="empty-state__title">Nada por aqui</p>
-    <p class="m-0">Nenhuma prescrição cadastrada ainda.</p>
-  </div></li>`;
+  return `
+    <li>
+      <div class="empty-state">
+        <p class="empty-state__title">Nada por aqui</p>
+        <p class="m-0">Nenhuma prescrição cadastrada ainda.</p>
+      </div>
+    </li>
+  `;
 }
 
 export function renderMedicationList(medications, container) {
@@ -31,7 +38,10 @@ export function renderMedicationList(medications, container) {
     container.innerHTML = emptyStateTemplate();
     return;
   }
-  container.innerHTML = medications.map(medicationCardTemplate).join("");
+
+  container.innerHTML = medications
+    .map(medicationCardTemplate)
+    .join("");
 }
 
 export function renderCounter(count, container) {
@@ -63,14 +73,21 @@ export function renderDetail(state, container) {
   if (state.detailErrorMessage) {
     container.innerHTML = `
       <div class="d-flex justify-content-between gap-3 align-items-start">
-        <div><strong>Não foi possível abrir a prescrição.</strong><p class="mb-0">${escapeHtml(state.detailErrorMessage)}</p></div>
+        <div>
+          <strong>Não foi possível abrir a prescrição.</strong>
+          <p class="mb-0">${escapeHtml(state.detailErrorMessage)}</p>
+        </div>
         <button id="close-detail-button" class="btn btn-outline-secondary btn-sm" type="button">Fechar</button>
-      </div>`;
+      </div>
+    `;
     return;
   }
 
   const med = state.selectedMedication;
-  if (!med) return;
+  if (!med) {
+    container.innerHTML = `<p class="m-0">Prescrição não encontrada no estado atual.</p>`;
+    return;
+  }
 
   container.innerHTML = `
     <div class="d-flex justify-content-between gap-3 align-items-start mb-3">
@@ -81,11 +98,18 @@ export function renderDetail(state, container) {
       </div>
       <button id="close-detail-button" class="btn btn-outline-secondary btn-sm" type="button">Fechar</button>
     </div>
+
     <dl class="row mb-3">
-      <dt class="col-sm-3">Via</dt><dd class="col-sm-9">${escapeHtml(med.route)}</dd>
-      <dt class="col-sm-3">Horário</dt><dd class="col-sm-9">${formatDateTime(med.scheduledAt)}</dd>
-      <dt class="col-sm-3">Observações</dt><dd class="col-sm-9">${med.notes ? escapeHtml(med.notes) : "Sem observações."}</dd>
+      <dt class="col-sm-3">Via</dt>
+      <dd class="col-sm-9">${escapeHtml(med.route)}</dd>
+
+      <dt class="col-sm-3">Horário</dt>
+      <dd class="col-sm-9">${formatDateTime(med.scheduledAt)}</dd>
+
+      <dt class="col-sm-3">Observações</dt>
+      <dd class="col-sm-9">${med.notes ? escapeHtml(med.notes) : "Sem observações."}</dd>
     </dl>
+
     <button id="remove-button" class="btn btn-outline-danger" type="button">Suspender</button>
   `;
 }

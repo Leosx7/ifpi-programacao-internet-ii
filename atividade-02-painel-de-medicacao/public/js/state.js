@@ -9,7 +9,9 @@ const state = {
 
 const listeners = [];
 
-export function subscribe(listener) { listeners.push(listener); }
+export function subscribe(listener) {
+  listeners.push(listener);
+}
 
 function notify() {
   const snapshot = getState();
@@ -17,7 +19,10 @@ function notify() {
 }
 
 export function getState() {
-  return { ...state, selectedMedication: getSelectedMedication() };
+  return {
+    ...state,
+    selectedMedication: getSelectedMedication(),
+  };
 }
 
 export function getSelectedMedication() {

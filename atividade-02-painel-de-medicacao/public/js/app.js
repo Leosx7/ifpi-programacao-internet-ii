@@ -1,16 +1,35 @@
-import { listMedications, createMedication, getMedication, removeMedication } from "./api.js";
 import {
-  subscribe, getState, setMedications, setError, addMedication,
-  selectMedication, setSelectedMedication, clearSelection,
-  setDetailError, removeMedicationFromState,
+  listMedications,
+  createMedication,
+  getMedication,
+  removeMedication,
+} from "./api.js";
+
+import {
+  subscribe,
+  getState,
+  setMedications,
+  setError,
+  addMedication,
+  selectMedication,
+  setSelectedMedication,
+  clearSelection,
+  setDetailError,
+  removeMedicationFromState,
 } from "./state.js";
+
 import {
-  renderMedicationList, renderCounter, renderLoading, renderError, renderDetail,
+  renderMedicationList,
+  renderCounter,
+  renderLoading,
+  renderError,
+  renderDetail,
 } from "./render.js";
 
 const medicationListElement = document.querySelector("#medication-list");
 const resultCounterElement = document.querySelector("#result-counter");
 const detailPanelElement = document.querySelector("#detail-panel");
+
 const patientNameInput = document.querySelector("#patient-name-input");
 const medicationNameInput = document.querySelector("#medication-name-input");
 const dosageInput = document.querySelector("#dosage-input");
@@ -25,6 +44,15 @@ function setFormFeedback(message, kind = "success") {
   formFeedbackElement.className = `med-form__feedback med-form__feedback--${kind}`;
 }
 
+function clearForm() {
+  patientNameInput.value = "";
+  medicationNameInput.value = "";
+  dosageInput.value = "";
+  routeInput.value = "Oral";
+  scheduledAtInput.value = "";
+  notesInput.value = "";
+}
+
 function renderApp(state) {
   if (state.errorMessage) {
     renderError(state.errorMessage, medicationListElement);
@@ -32,6 +60,7 @@ function renderApp(state) {
     renderDetail(state, detailPanelElement);
     return;
   }
+
   if (state.isLoading) {
     renderLoading(medicationListElement);
     resultCounterElement.textContent = "";
@@ -48,6 +77,7 @@ subscribe(renderApp);
 
 async function start() {
   renderApp(getState());
+
   try {
     const medications = await listMedications();
     setMedications(medications);
@@ -71,12 +101,7 @@ saveButton.addEventListener("click", async () => {
     });
 
     addMedication(created);
-    patientNameInput.value = "";
-    medicationNameInput.value = "";
-    dosageInput.value = "";
-    routeInput.value = "Oral";
-    scheduledAtInput.value = "";
-    notesInput.value = "";
+    clearForm();
     setFormFeedback("Prescrição cadastrada com sucesso.");
   } catch (error) {
     setFormFeedback(error.message, "error");
@@ -91,7 +116,10 @@ medicationListElement.addEventListener("click", (event) => {
 });
 
 medicationListElement.addEventListener("keydown", (event) => {
-  if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-medication-id]")) {
+  if (
+    (event.key === "Enter" || event.key === " ") &&
+    event.target.matches("[data-medication-id]")
+  ) {
     event.preventDefault();
     openDetail(Number(event.target.dataset.medicationId));
   }
@@ -99,6 +127,7 @@ medicationListElement.addEventListener("keydown", (event) => {
 
 async function openDetail(id) {
   selectMedication(id);
+
   try {
     const medication = await getMedication(id);
     setSelectedMedication(medication);
