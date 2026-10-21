@@ -1,5 +1,5 @@
 import * as argon2 from "argon2";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import {
   ConflictError,
   UnauthorizedError,
@@ -27,7 +27,7 @@ function signToken(user: {
   name: string;
   role: "admin" | "profissional" | "recepcao";
 }) {
-  const expiresIn = (process.env.JWT_EXPIRES_IN ?? "15m") as jwt.SignOptions["expiresIn"];
+  const expiresIn = (process.env.JWT_EXPIRES_IN ?? "15m") as SignOptions["expiresIn"];
   return jwt.sign(
     { id: user.id, name: user.name, role: user.role },
     secret(),

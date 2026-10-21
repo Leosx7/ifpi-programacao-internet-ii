@@ -9,7 +9,7 @@
     "db:reset": "prisma migrate reset --force",
     "check": "tsc --noEmit",
     "arch": "depcruise src --config .dependency-cruiser.cjs",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
     "gate": "bash gate.sh",
     "postinstall": "prisma generate"
   },
