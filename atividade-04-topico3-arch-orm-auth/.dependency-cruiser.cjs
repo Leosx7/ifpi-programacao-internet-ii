@@ -30,7 +30,7 @@ module.exports = {
         "A persistência é um adapter: fora de repositories ninguém importa database nem Prisma.",
       severity: "error",
       from: { path: "^src/(?!repositories)" },
-      to: { path: "^src/database$|^node_modules/(better-sqlite3|@prisma/client)" },
+      to: { path: "^src/database$|^node_modules/@prisma/client" },
     },
   ],
   options: {
