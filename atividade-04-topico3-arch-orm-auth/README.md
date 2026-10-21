@@ -1,134 +1,76 @@
-# Mini-Prontuário T3
+# Atividade 04 — Arquiteturas em Camadas, ORM e Autenticação
 
-Projeto-fio do **Tópico 3 — Arquiteturas em Camadas, ORM e Autenticação**
-(TEC.1052 · Programação para Internet II · ADS/IFPI).
+Programação para Internet II — IFPI, ADS IV, 2026.2.
 
-Ele chega **funcionando de ponta a ponta** no estado em que o Tópico 2
-terminou — camadas Route/Controller/Service, hierarquia de erros,
-validação Zod, upload de foto — e já **evoluído** com o recurso de
-prescrições (MedicationRequest). O Tópico 3 o transforma três vezes:
+Base oficial: `topico3/base-mini-prontuario-t3`.
 
-| Trilha | O que muda | O que NÃO pode mudar |
-|---|---|---|
-| **ARQ** | Nasce a camada Repository (ports & adapters); as 2 violações plantadas da Regra da Dependência são corrigidas | O comportamento da API (os testes são a prova) |
-| **ORM** | better-sqlite3 sai, Prisma entra — atrás da mesma interface | A interface dos repositories e o comportamento |
-| **AUTH** | Identidade (argon2 + JWT), papéis e a matriz de permissões | Tudo que já passava continua passando — e os ataques passam a falhar |
+## Resultado
 
-## Suba em 3 comandos
+Foi implementado o **Nível 1 (ARQ + ORM)** e o **Nível 2 (AUTH)**. O Nível 3 é opcional e não é reivindicado nesta entrega.
+
+### Trilha ARQ
+
+- ports `PatientsRepository`, `EncountersRepository` e `MedicationsRepository`;
+- adapters SQLite com todo SQL retirado dos Services;
+- violação Controller → banco removida de `encounters.controller.ts`;
+- violação Service → Express removida de `medications.service.ts`;
+- regra `so-repositories-importam-o-driver` adicionada ao dependency-cruiser;
+- nenhuma alteração em `public/`.
+
+### Trilha ORM
+
+- `prisma/schema.prisma` mapeando camelCase ↔ snake_case com `@map` / `@@map`;
+- baseline de migrations versionada;
+- adapters Prisma implementando **as mesmas interfaces** da ARQ;
+- Services continuam dependendo dos ports, não de Prisma;
+- `db:reset` passa a usar `prisma migrate reset` + seed Prisma.
+
+### Trilha AUTH
+
+- `UnauthorizedError` (401) e `ForbiddenError` (403);
+- tabela `users` criada por migration Prisma;
+- `register`, `login` e `me`;
+- senha hasheada com Argon2 antes do INSERT;
+- JWT com apenas `id`, `name` e `role`;
+- `requireAuth` traduz token ausente, adulterado ou expirado para 401;
+- autorização por papel nas rotas;
+- `recepcao` pode criar paciente/foto, mas não registrar atendimento nem ver/prescrever medicação;
+- `admin` pode registrar atendimento e ver prescrições, mas não prescrever;
+- `profissional` só prescreve no atendimento que ele próprio registrou.
+
+## Por que o login não valida senha mínima com 400?
+
+No **registro**, o tamanho mínimo é uma regra para criar uma nova credencial e pode ser rejeitado como entrada inválida. No **login**, rejeitar previamente uma senha curta com 400 criaria uma resposta semanticamente diferente do caso de credenciais incorretas e daria ao atacante um sinal extra para classificar tentativas. Por isso o login aceita qualquer string como tentativa de credencial e responde **401 com a mesma mensagem genérica** quando e-mail/senha não autenticam.
+
+## Decisão arquitetural mais difícil
+
+A decisão mais delicada foi a última linha da matriz: “profissional só prescreve no atendimento que registrou”. Colocar isso em `requireRoles("profissional")` seria insuficiente: o middleware sabe o papel, mas não sabe quem é o dono do atendimento. A rota filtra o papel; o `medications.service.ts` consulta o atendimento e compara `professionalId` com `actor.id`. Assim a regra de acesso que depende de estado do domínio fica no Service.
+
+## Como executar
+
+Crie `.env` a partir de `.env.example` e troque o segredo:
 
 ```bash
+cp .env.example .env
+# edite JWT_SECRET com valor forte
 npm install
-npm run db:reset     # cria database/prontuario.db com dados de teste
-npm run dev          # http://localhost:3000
+npm run db:reset
+npm run gate
+npm run dev
 ```
 
-A interface completa está em `http://localhost:3000` (ela é **fora do
-escopo** de todas as tarefas — mas leia o código dela: é a revisão viva
-do Tópico 1). Os testes manuais de API estão em `requests.http`.
+O frontend não foi alterado. Ao existir AUTH, a tela de login já fornecida passa a ser usada automaticamente.
 
-## Os comandos que importam
+## Revisão adversarial
 
-| Comando | O que faz |
-|---|---|
-| `npm run dev` | Sobe o servidor com recarga automática |
-| `npm run db:reset` | Recria o banco com o seed |
-| `npm run check` | Tipos (`tsc --noEmit`) |
-| `npm run arch` | Regras de arquitetura (dependency-cruiser) |
-| `npm run test` | Testes de API (servidor real, porta efêmera) |
-| `npm run gate` | **Tudo acima, na ordem. É o "Done when" de qualquer tarefa.** |
+**Aceito:** depois da AUTH, os smoke tests antigos sem token deixariam de representar o comportamento protegido e fariam o gate regredir. Eles foram adaptados somente na etapa AUTH, mantendo as mesmas invariantes funcionais e adicionando credenciais adequadas.
 
-> **O gate chega com UMA luz vermelha — de propósito.**
-> `npm run arch` acusa **2 violações plantadas** da Regra da
-> Dependência. Encontrá-las é exercício do Encontro 1; corrigi-las é
-> parte da trilha ARQ. Todas as outras checagens chegam verdes — e o
-> seu trabalho é **mantê-las verdes** enquanto o vermelho vira verde.
+**Recusado:** colocar a checagem “é o profissional dono do atendimento?” em middleware. Motivo: isso exigiria consulta de domínio na borda e misturaria autorização por papel com regra de negócio.
 
-## O mapa do território
+## Autoavaliação
 
-```
-mini-prontuario-t3/
-├── AGENTS.md                ← regras do projeto (humanos E agentes leem)
-├── CLAUDE.md                ← 2 linhas: aponta para AGENTS + INVARIANTES
-├── INVARIANTES.md           ← o que nunca pode quebrar (com enforcement)
-├── gate.sh                  ← o portão: tipos + arquitetura + testes + segredos
-├── .dependency-cruiser.cjs  ← as regras de camada, executáveis
-├── requests.http            ← testes manuais (inclui os ATAQUES da trilha AUTH)
-├── database/                ← schema.sql + seed.sql (vira histórico na trilha ORM)
-├── prisma/                  ← LEIA-ME da trilha ORM (o schema é tarefa sua)
-├── docs/
-│   ├── code_review.md       ← roteiro da revisão adversarial
-│   └── adr/0000-template.md ← modelo de ADR (nível 3 da atividade)
-├── src/
-│   ├── app.ts               ← montagem (testável) · server.ts só liga
-│   ├── routes/              ← só roteiam        ┐
-│   ├── controllers/         ← só traduzem HTTP  │ A Regra da
-│   ├── services/            ← decidem           │ Dependência
-│   ├── repositories/        ← (trilha ARQ)      ┘ aponta p/ dentro
-│   ├── errors/ · middlewares/ · validation/
-│   └── database.ts          ← better-sqlite3 (aposentado na trilha ORM)
-├── tests/
-│   ├── api.smoke.test.ts    ← a definição executável de "sem quebrar"
-│   └── auth.attacks.test.ts ← dormem até a trilha AUTH nascer
-└── public/                  ← frontend pronto (fora do escopo das tarefas)
-```
+A parte mais difícil foi manter três ideias separadas: autenticação, autorização por papel e autorização por domínio. Elas podem todas terminar em 401/403, mas pertencem a lugares diferentes da arquitetura. Outro ponto importante foi desenhar os repositories de modo assíncrono já na trilha ARQ, permitindo que o adapter Prisma substituísse o SQLite sem mudar a assinatura observada pelos Services. Se eu começasse de novo, escreveria primeiro uma tabela curta “decisão → camada → teste que prova” para cada item da matriz de permissões; isso reduziria ainda mais o risco de colocar uma regra correta no lugar errado.
 
-## As trilhas de TODOs
+## Evidência
 
-Cada `TODO` no código diz **o que** fazer e **por quê** — nunca o código
-pronto. A ordem importa: **ARQ → ORM → AUTH**.
-
-### Trilha ARQ — Arquitetura (camada Repository)
-| TODO | Onde | Tarefa |
-|---|---|---|
-| ARQ-1 | `services/patients.service.ts` | Interface `PatientsRepository` + adapter SQLite; o SQL sai do service |
-| ARQ-2 | `services/encounters.service.ts` | Mesmo movimento para Encounter |
-| ARQ-3 | `services/medications.service.ts` | Mesmo movimento para MedicationRequest |
-| ARQ-4 e ARQ-5 | *(encontre-as)* | Corrigir as **2 violações plantadas** que o `npm run arch` acusa |
-| ARQ-6 | `.dependency-cruiser.cjs` | Promover a régua: criar a regra "só repositories importam o driver" (a regra nasce DEPOIS da camada, senão é só ruído) |
-
-### Trilha ORM — Prisma atrás da interface
-O passo a passo mora em **`prisma/LEIA-ME.md`** (ORM-1 a ORM-5:
-init → `db pull` → `@map`/`@@map` → repositories Prisma → baseline de
-migrations). A partir daí vale o invariante **OP-1**: esquema só muda
-por migration.
-
-### Trilha AUTH — identidade e permissão
-| TODO | Onde | Tarefa |
-|---|---|---|
-| AUTH-1 | `errors/HttpError.ts` | `UnauthorizedError` (401) e `ForbiddenError` (403) |
-| AUTH-2 | *(migration Prisma)* | Tabela `users` (name, email único, password_hash, role) |
-| AUTH-3 | `routes/auth.routes.ts` | `register` · `login` · `me` (+ controller + service) |
-| AUTH-4 | `validation/auth.schemas.ts` | Schemas de registro e login |
-| AUTH-5 | `middlewares/auth.ts` | `requireAuth` — verificação do JWT |
-| AUTH-6/7/8 | *(não guiados)* | A Apresentação de Condução **para antes daqui**. Você tem a matriz de permissões e os testes de ataque — descubra o que falta e onde |
-
-**Matriz de permissões** (o contrato da parte não guiada):
-
-| Ação | admin | profissional | recepcao | sem token |
-|---|---|---|---|---|
-| Ver pacientes/atendimentos | ✅ | ✅ | ✅ | 401 |
-| Criar paciente / foto | ✅ | ✅ | ✅ | 401 |
-| Registrar atendimento | ✅ | ✅ | ❌ 403 | 401 |
-| Ver prescrições | ✅ | ✅ | ❌ 403 | 401 |
-| **Prescrever** | ❌ 403 | ✅ *só no atendimento que registrou* | ❌ 403 | 401 |
-
-> A última linha é o coração da atividade: prescrever não é questão de
-> **papel**, é questão de **domínio** — nem admin prescreve, e um
-> profissional não prescreve no atendimento de outro. Middleware nenhum
-> resolve isso sozinho. (`tests/auth.attacks.test.ts`, ATAQUE 6.)
-
-## Escopo fechado de bibliotecas
-
-`express` · `better-sqlite3` · `zod` · `multer` · `prisma`/`@prisma/client`
-· `argon2` · `jsonwebtoken` · `dotenv` — **e nada além disso**, para você
-e para qualquer agente que trabalhe aqui (está no `AGENTS.md`).
-
-## Problemas comuns
-
-| Sintoma | Causa provável |
-|---|---|
-| `npm run test` falha em tudo | Esqueceu `npm run db:reset` antes |
-| Upload responde 500 em vez de 413 | O tradutor do `LIMIT_FILE_SIZE` no errorHandler foi tocado |
-| `mergeParams` — `req.params.id` undefined | Router aninhado sem `{ mergeParams: true }` |
-| `arch` verde "do nada" | Alguém editou `.dependency-cruiser.cjs` — isso reprova a entrega (AGENTS.md § Do-not) |
-| 401 em tudo depois da trilha AUTH | Falta `JWT_SECRET` no `.env` (copie de `.env.example`) |
+A evidência de terminal é registrada em `IA.md`. O CI desta pasta executa o mesmo `npm run gate` do projeto.

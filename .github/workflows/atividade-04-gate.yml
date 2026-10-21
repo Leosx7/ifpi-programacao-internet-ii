@@ -1,0 +1,38 @@
+name: Atividade 04 - Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "atividade-04-topico3-arch-orm-auth/**"
+      - ".github/workflows/atividade-04-gate.yml"
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: atividade-04-topico3-arch-orm-auth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: atividade-04-topico3-arch-orm-auth/package-lock.json
+      - name: Configurar ambiente de teste
+        run: |
+          echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo 'JWT_EXPIRES_IN=15m' >> "$GITHUB_ENV"
+          echo 'DATABASE_URL=file:../database/prontuario.db' >> "$GITHUB_ENV"
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Instalar gitleaks
+        run: |
+          GOBIN="$HOME/.local/bin" go install github.com/gitleaks/gitleaks/v8@latest
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Recriar banco
+        run: npm run db:reset
+      - name: Gate
+        run: npm run gate

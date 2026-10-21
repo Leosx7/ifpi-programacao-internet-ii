@@ -8,4 +8,6 @@ Repositório para as atividades da disciplina **Programação para Internet II (
 - [Atividade 02 — Painel de Medicação](./atividade-02-painel-de-medicacao/)
 - [Atividade 03 — API REST Profissional](./atividade-03-api-rest-profissional/)
 
+- [Atividade 04 — Arquiteturas em Camadas, ORM e Autenticação](./atividade-04-topico3-arch-orm-auth/)
+
 Novas atividades serão adicionadas em pastas próprias, preservando o histórico de evolução da disciplina.
