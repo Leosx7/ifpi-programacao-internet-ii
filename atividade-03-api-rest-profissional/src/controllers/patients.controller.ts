@@ -20,7 +20,8 @@ export const patientsController = {
       throw new UnprocessableEntityError("Envie uma foto no campo 'photo'.");
     }
 
-    const patient = patientsService.setPhoto(request.params.id, request.file.filename);
-    response.status(200).json(patient);
+    response.status(200).json(
+      patientsService.updatePhoto(request.params.id, request.file.filename)
+    );
   },
 };

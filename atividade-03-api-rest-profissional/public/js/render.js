@@ -1,5 +1,3 @@
-import { state } from "./state.js";
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -8,68 +6,51 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-export function render() {
-  renderFormError();
-  renderPatientList();
+function formatDate(isoDate) {
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
 }
 
-function renderFormError() {
-  const container = document.getElementById("form-error-container");
-  container.innerHTML = "";
-  if (!state.formError) return;
+function patientCardTemplate(patient) {
+  const cardModifier = patient.active ? "" : " patient-card--inactive";
+  const badgeModifier = patient.active ? "status-badge--active" : "status-badge--inactive";
 
-  const box = document.createElement("div");
-  box.className = "form-error";
-
-  const title = document.createElement("div");
-  title.textContent = state.formError;
-  box.appendChild(title);
-
-  const entries = Object.entries(state.fieldErrors ?? {});
-  if (entries.length > 0) {
-    const list = document.createElement("ul");
-    list.className = "mb-0 mt-2";
-
-    for (const [field, messages] of entries) {
-      const item = document.createElement("li");
-      const message = Array.isArray(messages) ? messages.join(" ") : String(messages);
-      item.textContent = `${field}: ${message}`;
-      list.appendChild(item);
-    }
-
-    box.appendChild(list);
-  }
-
-  container.appendChild(box);
-}
-
-function renderPatientList() {
-  const list = document.getElementById("patient-list");
-  list.innerHTML = "";
-
-  for (const patient of state.patients) {
-    const li = document.createElement("li");
-    li.className = "patient-card";
-    li.dataset.patientId = patient.id;
-
-    const previewUrl = state.photoPreviews[patient.id];
-    const photoSrc = previewUrl || patient.photoUrl || "";
-
-    li.innerHTML = `
-      ${photoSrc
-        ? `<img class="patient-card__photo" src="${escapeHtml(photoSrc)}" alt="Foto de ${escapeHtml(patient.name)}" />`
-        : `<div class="patient-card__photo" aria-hidden="true"></div>`}
-      <div class="patient-card__content">
-        <p class="patient-card__name">${escapeHtml(patient.name)}</p>
-        <p class="patient-card__meta">CNS ${escapeHtml(patient.nationalId)} · ${patient.active ? "ativo" : "inativo"}</p>
-        <div class="patient-card__photo-actions mt-2">
-          <label class="form-label mb-1" for="photo-${patient.id}">Foto do paciente</label>
-          <input id="photo-${patient.id}" class="form-control form-control-sm" type="file" accept="image/jpeg,image/png" data-photo-input="${patient.id}" />
-          <button class="btn btn-outline-success btn-sm mt-2" type="button" data-upload-photo="${patient.id}">Enviar foto</button>
-        </div>
+  return `
+    <li class="patient-card${cardModifier}" data-patient-id="${patient.id}" tabindex="0" role="button">
+      <div class="patient-card__top">
+        <h2 class="patient-card__name">${escapeHtml(patient.name)}</h2>
+        <span class="status-badge ${badgeModifier}">${patient.active ? "Ativo" : "Inativo"}</span>
       </div>
-    `;
+      <p class="patient-card__meta">Nascimento: ${formatDate(patient.birthDate)}</p>
+      <p class="patient-card__meta patient-card__id">CNS ${escapeHtml(patient.nationalId)} · #${patient.id}</p>
+      <p class="patient-card__encounters">${patient.encounterCount ?? 0} atendimento(s)</p>
+    </li>
+  `;
+}
 
-    list.appendChild(li);
-  }
+export function renderPatientList(patients, searchTerm, container) {
+  container.innerHTML = patients.length
+    ? patients.map(patientCardTemplate).join("")
+    : `<li><div class="empty-state"><strong>Nada por aqui</strong><p>${
+        searchTerm
+          ? `Nenhum paciente corresponde a “${escapeHtml(searchTerm)}”.`
+          : "Nenhum paciente cadastrado ainda."
+      }</p></div></li>`;
+}
+
+export function renderCounter(visibleCount, totalCount, container) {
+  container.textContent =
+    visibleCount === totalCount
+      ? `${totalCount} paciente(s) no prontuário`
+      : `${visibleCount} de ${totalCount} paciente(s)`;
+}
+
+export function renderLoading(container) {
+  container.innerHTML =
+    '<li><div class="empty-state"><strong>Carregando…</strong><p>Buscando os pacientes.</p></div></li>';
+}
+
+export function renderError(message, container) {
+  container.innerHTML =
+    `<li><div class="empty-state"><strong>Algo deu errado</strong><p>${escapeHtml(message)}</p></div></li>`;
 }

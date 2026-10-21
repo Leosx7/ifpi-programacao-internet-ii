@@ -1,35 +1,58 @@
 const PATIENTS_URL = "/api/patients";
 
-export async function listPatients() {
-  const response = await fetch(PATIENTS_URL);
-  if (!response.ok) {
-    throw new Error(`Falha ao carregar pacientes (HTTP ${response.status})`);
+async function parseBody(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
   }
-  return response.json();
 }
 
-export async function createPatient(patient) {
-  const response = await fetch(PATIENTS_URL, {
+async function requestJson(url, options, fallback) {
+  const response = await fetch(url, options);
+  const body = await parseBody(response);
+
+  if (!response.ok) {
+    throw { apiError: body ?? { error: { message: fallback, details: null } } };
+  }
+
+  return body;
+}
+
+export function listPatients() {
+  return requestJson(PATIENTS_URL, undefined, "Não foi possível carregar pacientes.");
+}
+
+export function getPatient(id) {
+  return requestJson(`${PATIENTS_URL}/${id}`, undefined, "Paciente não encontrado.");
+}
+
+export function createPatient(patient) {
+  return requestJson(PATIENTS_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patient),
-  });
-
-  const body = await response.json();
-  if (!response.ok) throw { apiError: body };
-  return body;
+  }, "Não foi possível cadastrar o paciente.");
 }
 
-export async function uploadPatientPhoto(patientId, file) {
+export function listEncounters(patientId) {
+  return requestJson(`${PATIENTS_URL}/${patientId}/encounters`, undefined, "Não foi possível carregar os atendimentos.");
+}
+
+export function createEncounter(patientId, encounter) {
+  return requestJson(`${PATIENTS_URL}/${patientId}/encounters`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(encounter),
+  }, "Não foi possível registrar o atendimento.");
+}
+
+export function uploadPatientPhoto(patientId, file) {
   const formData = new FormData();
   formData.append("photo", file);
 
-  const response = await fetch(`${PATIENTS_URL}/${patientId}/photo`, {
+  return requestJson(`${PATIENTS_URL}/${patientId}/photo`, {
     method: "POST",
     body: formData,
-  });
-
-  const body = await response.json();
-  if (!response.ok) throw { apiError: body };
-  return body;
+  }, "Não foi possível enviar a foto.");
 }
