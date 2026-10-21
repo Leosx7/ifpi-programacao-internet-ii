@@ -1,0 +1,65 @@
+### Mini-Prontuario - testes da API
+@host = http://localhost:3000
+
+### Health -> 200
+GET {{host}}/api/health
+
+### Listar pacientes -> 200
+GET {{host}}/api/patients
+
+### Paciente existente -> 200
+GET {{host}}/api/patients/1
+
+### Paciente inexistente -> 404
+GET {{host}}/api/patients/9999
+
+### Listar atendimentos -> 200
+GET {{host}}/api/patients/1/encounters
+
+### Criar atendimento -> 201
+POST {{host}}/api/patients/1/encounters
+Content-Type: application/json
+
+{
+  "startedAt": "2026-08-17T09:30",
+  "chiefComplaint": "Cefaleia ha tres dias",
+  "notes": "Orientada hidratacao e retorno em 7 dias."
+}
+
+### Erro: sem chiefComplaint -> 400
+POST {{host}}/api/patients/1/encounters
+Content-Type: application/json
+
+{
+  "startedAt": "2026-08-17T09:30"
+}
+
+### Erro: chiefComplaint só com espaços -> 400
+POST {{host}}/api/patients/1/encounters
+Content-Type: application/json
+
+{
+  "startedAt": "2026-08-17T09:30",
+  "chiefComplaint": "   "
+}
+
+### Erro: startedAt fora do formato -> 400
+POST {{host}}/api/patients/1/encounters
+Content-Type: application/json
+
+{
+  "startedAt": "17/08/2026 09:30",
+  "chiefComplaint": "Teste"
+}
+
+### Erro: POST em paciente inexistente -> 404
+POST {{host}}/api/patients/9999/encounters
+Content-Type: application/json
+
+{
+  "startedAt": "2026-08-17T09:30",
+  "chiefComplaint": "Teste"
+}
+
+### Erro: GET em paciente inexistente -> 404
+GET {{host}}/api/patients/9999/encounters
