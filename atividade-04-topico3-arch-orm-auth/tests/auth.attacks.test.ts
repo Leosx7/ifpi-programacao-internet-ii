@@ -149,3 +149,24 @@ quandoAuthExistir("ATAQUE 6 — regra de domínio: profissional B não prescreve
   });
   assert.equal(res.status, 403, "a regra 'só quem registrou prescreve' mora no service, não no middleware");
 });
+
+
+quandoAuthExistir("ATAQUE 7 — token EXPIRADO -> 401", async () => {
+  const previous = process.env.JWT_EXPIRES_IN;
+  process.env.JWT_EXPIRES_IN = "1s";
+
+  const token = await login(PROFISSIONAL);
+
+  if (previous === undefined) {
+    delete process.env.JWT_EXPIRES_IN;
+  } else {
+    process.env.JWT_EXPIRES_IN = previous;
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  const res = await api("/api/patients", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  assert.equal(res.status, 401);
+});
