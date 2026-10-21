@@ -1,0 +1,58 @@
+@host = http://localhost:3000
+
+### Health -> 200
+GET {{host}}/api/health
+
+### Listar -> 200 com 3 registros após db:reset
+GET {{host}}/api/medications
+
+### Filtrar por paciente (bônus)
+GET {{host}}/api/medications?patientName=Ana
+
+### Obter existente -> 200
+GET {{host}}/api/medications/1
+
+### Obter inexistente -> 404
+GET {{host}}/api/medications/9999
+
+### Criar válida -> 201
+POST {{host}}/api/medications
+Content-Type: application/json
+
+{
+  "patientName": "Igor Bastos Teixeira",
+  "medicationName": "Amoxicilina",
+  "dosage": "875mg",
+  "route": "Oral",
+  "scheduledAt": "2026-09-10T18:00",
+  "notes": ""
+}
+
+### Criar sem patientName -> 400
+POST {{host}}/api/medications
+Content-Type: application/json
+
+{
+  "medicationName": "Amoxicilina",
+  "dosage": "875mg",
+  "route": "Oral",
+  "scheduledAt": "2026-09-10T18:00"
+}
+
+### Criar com data inválida -> 400
+POST {{host}}/api/medications
+Content-Type: application/json
+
+{
+  "patientName": "Teste",
+  "medicationName": "X",
+  "dosage": "1mg",
+  "route": "Oral",
+  "scheduledAt": "10/09/2026 18:00"
+}
+
+### Remover existente -> 204
+DELETE {{host}}/api/medications/1
+
+### Remover de novo -> 404
+DELETE {{host}}/api/medications/1
