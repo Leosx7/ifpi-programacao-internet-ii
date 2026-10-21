@@ -8,27 +8,41 @@ datasource db {
 }
 
 model Patient {
-  id                 Int         @id @default(autoincrement())
-  name               String
-  birthDate          String      @map("birth_date")
-  nationalId         String      @unique @map("national_id")
-  photoUrl           String?     @map("photo_url")
-  active             Int         @default(1)
-  encounters         Encounter[]
+  id         Int         @id @default(autoincrement())
+  name       String
+  birthDate  String      @map("birth_date")
+  nationalId String      @unique @map("national_id")
+  photoUrl   String?     @map("photo_url")
+  active     Int         @default(1)
+  encounters Encounter[]
 
   @@map("patients")
+}
+
+model User {
+  id           Int         @id @default(autoincrement())
+  name         String
+  email        String      @unique
+  passwordHash String      @map("password_hash")
+  role         String
+  encounters   Encounter[]
+
+  @@map("users")
 }
 
 model Encounter {
   id                 Int                 @id @default(autoincrement())
   patientId          Int                 @map("patient_id")
+  professionalId     Int?                @map("professional_id")
   startedAt          String              @map("started_at")
   chiefComplaint     String              @map("chief_complaint")
   notes              String?
   patient            Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professional       User?               @relation(fields: [professionalId], references: [id], onDelete: SetNull)
   medicationRequests MedicationRequest[]
 
   @@index([patientId], map: "idx_encounters_patient")
+  @@index([professionalId], map: "idx_encounters_professional")
   @@map("encounters")
 }
 

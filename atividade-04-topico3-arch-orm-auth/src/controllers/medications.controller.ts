@@ -12,6 +12,7 @@ export async function create(request: Request, response: Response) {
   const created = await medicationsService.createMedication(
     Number(request.params.encounterId),
     request.body,
+    request.user!,
   );
   response.status(201).json(created);
 }

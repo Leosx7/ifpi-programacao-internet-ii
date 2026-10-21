@@ -1,24 +1,17 @@
-/**
- * ============================================================
- * TRILHA AUTH — o guarda na porta
- * ------------------------------------------------------------
- * Na Arquitetura Hexagonal, este arquivo é um ADAPTER DE ENTRADA:
- * o guarda fica na PORTA (middleware), nunca dentro da cozinha
- * (service). O service recebe "quem é o usuário" já resolvido.
- * ============================================================
- */
 import type { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import {
+  ForbiddenError,
+  UnauthorizedError,
+} from "../errors/HttpError";
 
-/** O que o token comprova sobre quem chamou. */
 export type AuthenticatedUser = {
   id: number;
   name: string;
   role: "admin" | "profissional" | "recepcao";
 };
 
-// Anexamos o usuário autenticado ao Request para os controllers lerem.
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
@@ -26,27 +19,70 @@ declare global {
   }
 }
 
-/* ------------------------------------------------------------
-   TODO AUTH-5 — requireAuth (autenticação: QUEM é você?)
-   ------------------------------------------------------------
-   Implemente o middleware `requireAuth`:
-   1. Leia o header `Authorization`. Formato esperado:
-      "Bearer <token>". Sem header ou formato errado ->
-      lance UnauthorizedError (401).
-   2. Verifique o token com jwt.verify(token, JWT_SECRET).
-      Token adulterado ou expirado -> UnauthorizedError (401).
-      (jwt.verify LANÇA nesses casos — capture e traduza.)
-   3. Coloque o payload em `request.user` e chame next().
+function secret() {
+  const value = process.env.JWT_SECRET;
+  if (!value) {
+    throw new Error("JWT_SECRET não configurado.");
+  }
+  return value;
+}
 
-   Segredo: process.env.JWT_SECRET — vem do .env (invariante OP-2:
-   segredo NUNCA hardcoded, NUNCA commitado).
-   ------------------------------------------------------------ */
+function isRole(value: unknown): value is AuthenticatedUser["role"] {
+  return value === "admin" || value === "profissional" || value === "recepcao";
+}
 
-/* ------------------------------------------------------------
-   TODO AUTH-6 — (parte NÃO guiada da atividade)
-   ------------------------------------------------------------
-   A Apresentação de Condução para aqui de propósito.
-   Você tem a matriz de permissões e os testes de ataque que
-   precisam passar (requests.http, seção AUTH). Descubra o que
-   falta construir aqui — e onde aplicá-lo.
-   ------------------------------------------------------------ */
+export function requireAuth(
+  request: Request,
+  _response: Response,
+  next: NextFunction,
+) {
+  const header = request.headers.authorization;
+  const [scheme, token, extra] = header?.split(" ") ?? [];
+
+  if (scheme !== "Bearer" || !token || extra) {
+    throw new UnauthorizedError();
+  }
+
+  try {
+    const decoded = jwt.verify(token, secret());
+
+    if (
+      typeof decoded === "string" ||
+      typeof decoded.id !== "number" ||
+      typeof decoded.name !== "string" ||
+      !isRole(decoded.role)
+    ) {
+      throw new UnauthorizedError();
+    }
+
+    request.user = {
+      id: decoded.id,
+      name: decoded.name,
+      role: decoded.role,
+    };
+    next();
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      throw error;
+    }
+    throw new UnauthorizedError("Token inválido ou expirado.");
+  }
+}
+
+export function requireRoles(
+  ...roles: AuthenticatedUser["role"][]
+) {
+  return (
+    request: Request,
+    _response: Response,
+    next: NextFunction,
+  ) => {
+    if (!request.user) {
+      throw new UnauthorizedError();
+    }
+    if (!roles.includes(request.user.role)) {
+      throw new ForbiddenError();
+    }
+    next();
+  };
+}
