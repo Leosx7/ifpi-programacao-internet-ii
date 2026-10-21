@@ -9,16 +9,16 @@ app.use(express.static("public"));
 app.get("/api/health", (_req,res)=>res.json({status:"ok"}));
 
 function patientExists(id:number){ return !!db.prepare("SELECT id FROM patients WHERE id = ?").get(id); }
-function toPatient(row:any){ return {id:row.id,name:row.name,birthDate:row.birth_date,nationalId:row.national_id,active:Boolean(row.active)}; }
+function toPatient(row:any){ return {id:row.id,name:row.name,birthDate:row.birth_date,nationalId:row.national_id,active:Boolean(row.active),encounterCount:Number(row.encounter_count ?? 0)}; }
 function toEncounter(row:any){ return {id:row.id,patientId:row.patient_id,startedAt:row.started_at,chiefComplaint:row.chief_complaint,notes:row.notes}; }
 
 app.get("/api/patients", (_req,res)=>{
-  const rows=db.prepare("SELECT id,name,birth_date,national_id,active FROM patients ORDER BY name").all();
+  const rows=db.prepare("SELECT p.id,p.name,p.birth_date,p.national_id,p.active, COUNT(e.id) AS encounter_count FROM patients p LEFT JOIN encounters e ON e.patient_id = p.id GROUP BY p.id ORDER BY p.name").all();
   res.json(rows.map(toPatient));
 });
 
 app.get("/api/patients/:id", (req,res)=>{
-  const row=db.prepare("SELECT id,name,birth_date,national_id,active FROM patients WHERE id = ?").get(Number(req.params.id));
+  const row=db.prepare("SELECT p.id,p.name,p.birth_date,p.national_id,p.active, COUNT(e.id) AS encounter_count FROM patients p LEFT JOIN encounters e ON e.patient_id = p.id WHERE p.id = ? GROUP BY p.id").get(Number(req.params.id));
   if(!row) return res.status(404).json({error:"Paciente não encontrado."});
   res.json(toPatient(row));
 });
