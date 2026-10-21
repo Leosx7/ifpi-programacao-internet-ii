@@ -6,5 +6,6 @@ Repositório para as atividades da disciplina **Programação para Internet II (
 
 - [Atividade 01 — Registrando o Atendimento](./atividade-01-registrando-atendimento/)
 - [Atividade 02 — Painel de Medicação](./atividade-02-painel-de-medicacao/)
+- [Atividade 03 — API REST Profissional](./atividade-03-api-rest-profissional/)
 
 Novas atividades serão adicionadas em pastas próprias, preservando o histórico de evolução da disciplina.

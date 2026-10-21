@@ -1,0 +1,120 @@
+### Variaveis
+@host = http://localhost:3000
+
+### 1. Health check -> 200
+GET {{host}}/api/health
+
+### 2. Listar pacientes -> 200
+GET {{host}}/api/patients
+
+### 3. Buscar paciente por id -> 200
+GET {{host}}/api/patients/1
+
+### 4. FALHA: paciente inexistente -> 404 no contrato central
+GET {{host}}/api/patients/9999
+
+### 5. Cadastrar paciente -> 201
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "name": "Paciente de Teste",
+  "birthDate": "1990-01-01",
+  "nationalId": "888888888888888"
+}
+
+### 6. FALHA: CNS repetido -> 409
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "name": "Paciente de Teste (duplicado)",
+  "birthDate": "1990-01-01",
+  "nationalId": "888888888888888"
+}
+
+### 7. FALHA: sem name -> 400
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "birthDate": "1990-01-01",
+  "nationalId": "111111111111111"
+}
+
+### 8. Listar atendimentos do paciente 1 -> 200
+GET {{host}}/api/patients/1/encounters
+
+### 9. Registrar atendimento -> 201
+POST {{host}}/api/patients/1/encounters
+Content-Type: application/json
+
+{
+  "startedAt": "2026-09-02T10:00",
+  "chiefComplaint": "Consulta de rotina"
+}
+
+### 10. FALHA: paciente inexistente em encounters -> 404
+GET {{host}}/api/patients/9999/encounters
+
+### 11. Zod: dois campos invalidos -> 400 com details.name e details.birthDate
+POST {{host}}/api/patients
+Content-Type: application/json
+
+{
+  "name": "",
+  "birthDate": "data-invalida",
+  "nationalId": "123"
+}
+
+### 12. Upload de foto -> 200
+### Ajuste o caminho abaixo para uma imagem JPEG local antes de executar.
+POST {{host}}/api/patients/1/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="photo"; filename="foto.jpg"
+Content-Type: image/jpeg
+
+< ./foto.jpg
+------WebKitFormBoundary--
+
+### 12a. Upload para paciente inexistente -> 404
+POST {{host}}/api/patients/9999/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="photo"; filename="foto.jpg"
+Content-Type: image/jpeg
+
+< ./foto.jpg
+------WebKitFormBoundary--
+
+### 12b. Upload sem arquivo -> 422
+POST {{host}}/api/patients/1/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary--
+
+### 12c. Arquivo grande demais -> 413
+### Ajuste para um JPEG/PNG com mais de 2 MB.
+POST {{host}}/api/patients/1/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="photo"; filename="grande.jpg"
+Content-Type: image/jpeg
+
+< ./grande.jpg
+------WebKitFormBoundary--
+
+### 13. Tipo nao permitido -> 422
+POST {{host}}/api/patients/1/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="photo"; filename="arquivo.txt"
+Content-Type: text/plain
+
+conteudo de teste
+------WebKitFormBoundary--
