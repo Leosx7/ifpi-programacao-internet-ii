@@ -48,7 +48,13 @@ before(async () => {
 after(() => server.close());
 
 function quandoAuthExistir(name: string, fn: () => Promise<void>) {
-  test(name, { skip: !authPronta ? "trilha AUTH ainda não implementada" : false }, fn);
+  test(name, async (t) => {
+    if (!authPronta) {
+      t.skip("trilha AUTH ainda não implementada");
+      return;
+    }
+    await fn();
+  });
 }
 
 async function login(credentials: { email: string; password: string }): Promise<string> {
