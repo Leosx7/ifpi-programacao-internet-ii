@@ -1,0 +1,62 @@
+.wrapper {
+  overflow-x: auto;
+  padding: 0 32px 32px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #27313d;
+}
+
+.table th,
+.table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #edf0f2;
+  text-align: left;
+}
+
+.table thead th {
+  color: #5d6673;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.category {
+  background: #ecfdf5;
+  color: #087f5b;
+  font-size: 0.86rem;
+  letter-spacing: 0.03em;
+}
+
+.inStock {
+  color: #24303b;
+}
+
+.outOfStock {
+  color: #c92a2a;
+  font-weight: 700;
+}
+
+.price {
+  width: 140px;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding-block: 32px !important;
+  color: #7a8490;
+  text-align: center !important;
+}
+
+@media (max-width: 560px) {
+  .wrapper {
+    padding-inline: 18px;
+  }
+
+  .table th,
+  .table td {
+    padding-inline: 8px;
+  }
+}
